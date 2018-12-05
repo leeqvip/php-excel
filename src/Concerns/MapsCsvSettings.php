@@ -22,7 +22,7 @@ trait MapsCsvSettings
     /**
      * @var bool
      */
-    protected $useBom = false;
+    protected $useBom = true;
 
     /**
      * @var bool

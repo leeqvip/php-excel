@@ -8,24 +8,30 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Csv;
 use TechOne\Excel\Concerns\MapsCsvSettings;
+use TechOne\Excel\Concerns\MapsCacheSettings;
+use TechOne\Excel\Concerns\MapsSettings;
 use TechOne\Excel\Concerns\WithTitle;
 use TechOne\Excel\Concerns\WithCharts;
 
 class Writer
 {
-    use MapsCsvSettings;
+    use MapsCsvSettings, MapsCacheSettings, MapsSettings;
+
     /**
      * @var Spreadsheet
      */
     protected $spreadsheet;
+
     /**
      * @var object
      */
     protected $exportable;
+
     /**
      * @var string
      */
     protected $tmpPath;
+
     /**
      * @var string
      */
@@ -33,13 +39,21 @@ class Writer
 
     public function __construct()
     {
-        $this->tmpPath = config('excel.exports.temp_path', sys_get_temp_dir());
-        $this->applyCsvSettings(config('excel.exports.csv', []));
+        $this->tmpPath = Settings::get('exports.temp_path', sys_get_temp_dir());
+        $this->applyCsvSettings(Settings::get('exports.csv', []));
         $this->setDefaultValueBinder();
+    }
+
+    protected function beforeExport()
+    {
+        $this->applyCacheSettings(Settings::get('cache', []));
+        $this->applySettings(Settings::all());
     }
 
     public function export($export, string $writerType): string
     {
+        $this->beforeExport();
+
         $this->open($export);
         $sheetExports = [$export];
 
@@ -85,8 +99,6 @@ class Writer
             $writer->setIncludeSeparatorLine($this->includeSeparatorLine);
             $writer->setExcelCompatibility($this->excelCompatibility);
         }
-
-        $writer->setPreCalculateFormulas(false);
         $writer->save($fileName);
         $this->spreadsheet->disconnectWorksheets();
         unset($this->spreadsheet);
@@ -174,6 +186,6 @@ class Writer
      */
     public function tempFile()
     {
-        return $this->tmpPath.DIRECTORY_SEPARATOR.'think-excel-'.mt_rand(100000, 99999999);
+        return $this->tmpPath.DIRECTORY_SEPARATOR.'php-excel-'.md5(microtime(true));
     }
 }

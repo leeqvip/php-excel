@@ -2,9 +2,7 @@
 
 namespace TechOne\Excel;
 
-use TechOne\Excel\Concerns\FromCollection;
 use TechOne\Excel\Exceptions\NoTypeDetectedException;
-use think\response\Download;
 
 class Excel
 {
@@ -26,19 +24,48 @@ class Excel
      */
     protected $writer;
 
+    public $config = [];
+
     public function __construct(Writer $writer)
     {
         $this->writer = $writer;
     }
 
-    public function download(FromCollection $export, $fileName, $writerType = null)
+    public function setWriter(Writer $writer)
     {
-        $file = $this->export($export, $fileName, $writerType);
-
-        return download($file, $fileName);
+        $this->writer = $writer;
     }
 
-    protected function export(FromCollection $export, $fileName, $writerType = null)
+    public static function init($config = [])
+    {
+        return new Excel(new Writer());
+    }
+
+    public function download($export, $fileName, $writerType = null)
+    {
+        $filePath = $this->export($export, $fileName, $writerType);
+
+        ob_clean();
+
+        $fp = fopen($filePath, 'r');
+        $fileSize = filesize($filePath);
+
+        header('Content-type:application/octet-stream');
+        header('Accept-Ranges:bytes');
+        header('Accept-Length:'.$fileSize);
+        header('Content-Disposition: attachment; filename='.$fileName);
+
+        $buffer = 1024;
+        $bufferCount = 0;
+        while (!feof($fp) && $fileSize - $bufferCount > 0) {
+            $data = fread($fp, $buffer);
+            $bufferCount += $buffer;
+            echo $data;
+        }
+        fclose($fp);
+    }
+
+    protected function export($export, $fileName, $writerType = null)
     {
         $writerType = $this->findTypeByExtension($fileName, $writerType);
 
@@ -57,6 +84,6 @@ class Excel
             throw new NoTypeDetectedException();
         }
 
-        return config('excel.extension_detector.'.strtolower($extension));
+        return Settings::get('extension_detector.'.strtolower($extension));
     }
 }

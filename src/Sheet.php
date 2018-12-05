@@ -4,6 +4,7 @@ namespace TechOne\Excel;
 
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use TechOne\Excel\Concerns\FromCollection;
+use TechOne\Excel\Concerns\FromArray;
 
 class Sheet
 {
@@ -33,8 +34,8 @@ class Sheet
     public function __construct(Worksheet $worksheet)
     {
         $this->worksheet = $worksheet;
-        $this->chunkSize = config('excel.exports.chunk_size', 100);
-        $this->tmpPath = config('excel.exports.temp_path', sys_get_temp_dir());
+        $this->chunkSize = Settings::get('exports.chunk_size', 100);
+        $this->tmpPath = Settings::get('exports.temp_path', sys_get_temp_dir());
     }
 
     /**
@@ -55,9 +56,9 @@ class Sheet
         if ($sheetExport instanceof FromCollection) {
             $this->fromCollection($sheetExport);
         }
-        // if ($sheetExport instanceof FromArray) {
-        //     $this->fromArray($sheetExport);
-        // }
+        if ($sheetExport instanceof FromArray) {
+            $this->fromArray($sheetExport);
+        }
         // if ($sheetExport instanceof FromIterator) {
         //     $this->fromIterator($sheetExport);
         // }
@@ -84,9 +85,11 @@ class Sheet
         $this->append($append, null, false);
     }
 
-    /**
-     * @return bool
-     */
+    public function fromArray(FromArray $sheetExport)
+    {
+        $this->appendRows($sheetExport->array(), $sheetExport);
+    }
+
     private function hasRows(): bool
     {
         return $this->worksheet->cellExists('A1');

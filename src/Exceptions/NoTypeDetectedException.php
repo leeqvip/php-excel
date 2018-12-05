@@ -2,8 +2,6 @@
 
 namespace TechOne\Excel\Exceptions;
 
-use think\Exception;
-
-class NoTypeDetectedException extends Exception
+class NoTypeDetectedException extends \ExcelException
 {
 }
